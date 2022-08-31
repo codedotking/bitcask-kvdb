@@ -4,13 +4,15 @@ import (
 	rt "github.com/plar/go-adaptive-radix-tree"
 )
 
-// 基数树 key 对应的 value
+// Value 基数树 key 对应的 value
 type Value struct {
-	dataType int
-	value    interface{}
+	fid    int64
+	offset int64
+	// 消息大小
+	entrySize int64
 }
 
-// 基数树 所有数据存放的地方
+// RadixTree 基数树 所有数据存放的地方
 type RadixTree struct {
 	tree rt.Tree
 }
@@ -19,8 +21,8 @@ func str2bytes(str string) []byte {
 	return []byte(str)
 }
 
-func (node *RadixTree) Put(key string, value Value) (oldVal interface{}, updated bool) {
-	return node.tree.Insert(str2bytes(key), value)
+func (node *RadixTree) Put(key string, v Value) (oldVal interface{}, updated bool) {
+	return node.tree.Insert(str2bytes(key), v)
 }
 
 func (art *RadixTree) Get(key string) interface{} {
@@ -61,7 +63,7 @@ func (art *RadixTree) Size() int {
 	return art.tree.Size()
 }
 
-func NewNode() *RadixTree {
+func NewRadixTree() *RadixTree {
 	return &RadixTree{
 		tree: rt.New(),
 	}
