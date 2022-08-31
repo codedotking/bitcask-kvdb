@@ -1,7 +1,9 @@
 package db
 
 import (
+	"fmt"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/he-wen-yao/bitcask-kvdb/util"
@@ -42,6 +44,39 @@ func (db *bitCaskDB) Run() error {
 			return err
 		}
 	}
+
+	// 初始化日志文件
+	err := db.loadLogFiles()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// loadLogFiles 加载 bitCaskDB 所需要的日志文件
+func (db *bitCaskDB) loadLogFiles() error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	// 读取存放日志的目录
+	files, err := os.ReadDir(db.options.DBPath)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		fileName := file.Name()
+		if strings.HasPrefix(fileName, LogFilePrefix) && strings.HasSuffix(fileName, LogFileSuffix) {
+			nameSplits := strings.Split(fileName, ",")
+			if err != nil {
+				return err
+			}
+			_ = FileName2LogType[nameSplits[1]]
+			//db.activeLogFiles[logType] = os.OpenFile(fileName)
+		}
+		fmt.Println(file.Name())
+	}
+
 	return nil
 }
 
@@ -69,7 +104,7 @@ func (db *bitCaskDB) AppendLog(log string, logType logType) error {
 	}
 	// 获取 logType 对应的 activeLogFile
 	activeLogFile := db.activeLogFiles[logType]
-	err := activeLogFile.AppendEntry(NewLogEntry("log", "log", uint16(logType)))
+	err := activeLogFile.AppendEntry(NewLogEntry(log, log, uint16(logType)))
 	if err != nil {
 		return err
 	}

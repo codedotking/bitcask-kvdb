@@ -2,7 +2,9 @@ package db
 
 import (
 	"errors"
+	"io"
 	"os"
+	"path"
 	"sync"
 	"sync/atomic"
 
@@ -14,26 +16,27 @@ type logType int
 // 日志类型定义
 const (
 	strType logType = iota
-	listType
 )
 
 // 定义错误信息
 var (
-	// 写入数据大小不一致错误
+	// ErrWriteSizeNotEqual 写入数据大小不一致错误
 	ErrWriteSizeNotEqual = errors.New("logfile: write size is not equal to entry size")
 )
 
 const (
-	// InitialLogFileId initial log file id: 0.
-	InitialLogFileId = 0
-	// 日志文件的前缀
-	FilePrefix = "kv."
-	// 日志文件的后缀
-	FileSuffix = ".data"
+	// LogFilePrefix 日志文件的前缀
+	LogFilePrefix = "kv."
+	// LogFileSuffix 日志文件的后缀
+	LogFileSuffix = ".data"
 )
 
 var LogType2FileName = map[logType]string{
 	strType: "string",
+}
+
+var FileName2LogType = map[string]logType{
+	"string": strType,
 }
 
 // 日志文件
@@ -48,7 +51,7 @@ type logFile struct {
 
 // NewLogFile 根据目录和日志类型创建日志文件
 func NewLogFile(filePath string, logType logType) (lf *logFile, err error) {
-	fileName := filePath + "/" + FilePrefix + LogType2FileName[logType] + FileSuffix
+	fileName := filePath + "/" + LogFilePrefix + LogType2FileName[logType] + LogFileSuffix
 	f, err := util.CreateFile(fileName)
 	if err != nil {
 		return nil, err
@@ -79,4 +82,46 @@ func (file *logFile) AppendEntry(logEntry *logEntry) error {
 	}
 	atomic.AddInt64(&file.offset, int64(n))
 	return nil
+}
+
+// Remove 移除当前日志文件
+func (file *logFile) Remove() error {
+	file.mu.Lock()
+	defer file.mu.Unlock()
+	if err := file.file.Close(); err != nil {
+		return err
+	}
+	return os.Remove(file.file.Name())
+}
+
+// ToOlderLogFile 转为旧的日志文件
+func (file *logFile) ToOlderLogFile() error {
+	var (
+		err     error
+		dstFile *os.File
+		srcInfo os.FileInfo
+	)
+	srcFile := file.file
+	filePath := srcFile.Name()
+	dirPath, fileName := path.Split(filePath)
+	olderPath := path.Join(dirPath, "older")
+	if !util.PathExist(olderPath) {
+		if err := os.MkdirAll(olderPath, os.ModePerm); err != nil {
+			return err
+		}
+	}
+	destFileName := path.Join(olderPath, fileName)
+	if dstFile, err = os.Create(destFileName); err != nil {
+		return err
+	}
+	defer util.CloseFile(dstFile)
+
+	if _, err = io.Copy(dstFile, srcFile); err != nil {
+		return err
+	}
+	if srcInfo, err = os.Stat(filePath); err != nil {
+		return err
+	}
+	// 修改复制后的文件权限
+	return os.Chmod(destFileName, srcInfo.Mode())
 }

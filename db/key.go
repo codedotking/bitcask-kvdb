@@ -4,13 +4,13 @@ import (
 	rt "github.com/plar/go-adaptive-radix-tree"
 )
 
-// 基数树 key 对应的 value
+// Value 基数树 key 对应的 value
 type Value struct {
 	dataType int
 	value    interface{}
 }
 
-// 基数树 所有数据存放的地方
+// RadixTree 基数树 所有数据存放的地方
 type RadixTree struct {
 	tree rt.Tree
 }
