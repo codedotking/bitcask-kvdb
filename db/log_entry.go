@@ -3,52 +3,7 @@ package db
 import (
 	"encoding/binary"
 	"fmt"
-	"os"
-	"sync"
-
-	"github.com/he-wen-yao/bitcask-kvdb/util"
 )
-
-type logType int
-
-const (
-	strType logType = iota
-	listType
-)
-
-const (
-	// InitialLogFileId initial log file id: 0.
-	InitialLogFileId = 0
-	// FilePrefix log file prefix.
-	FilePrefix = "kv."
-	FileSuffix = ".data"
-)
-
-var LogType2FileName = map[logType]string{
-	strType: "string",
-}
-
-// 日志文件
-type logFile struct {
-	mu     sync.RWMutex
-	file   *os.File
-	offset int64
-}
-
-// NewLogFile 根据目录和日志类型创建日志文件
-func NewLogFile(filePath string, logType logType) (lf *logFile, err error) {
-	fileName := filePath + "/" + FilePrefix + LogType2FileName[logType] + FileSuffix
-	print(fileName)
-	f, err := util.CreateFile(fileName)
-	if err != nil {
-		return nil, err
-	}
-	stat, err := os.Stat(fileName)
-	if err != nil {
-		return nil, err
-	}
-	return &logFile{offset: stat.Size(), file: f}, nil
-}
 
 const entryHeaderSize = 10
 
@@ -62,16 +17,19 @@ type logEntry struct {
 }
 
 // NewLogEntry 创建一个日志记录
-func NewLogEntry(key, value []byte, optType uint16) *logEntry {
+func NewLogEntry(key, value string, optType uint16) *logEntry {
+	temp_key := []byte(key)
+	temp_value := []byte(value)
 	return &logEntry{
-		Key:       key,
-		Value:     value,
-		KeySize:   uint32(len(key)),
-		ValueSize: uint32(len(value)),
+		Key:       temp_key,
+		Value:     temp_value,
+		KeySize:   uint32(len(temp_key)),
+		ValueSize: uint32(len(temp_value)),
 		OptType:   optType,
 	}
 }
 
+// 获取当前日志记录信息的大小
 func (e *logEntry) GetSize() int64 {
 	return int64(entryHeaderSize + e.KeySize + e.ValueSize)
 }

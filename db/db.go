@@ -1,7 +1,6 @@
 package db
 
 import (
-	"fmt"
 	"os"
 	"sync"
 
@@ -12,8 +11,9 @@ type bitCaskDB struct {
 	mu      *sync.RWMutex
 	options *Options
 	// string 类型实现
-	str_           *RadixTree
-	activeLogFiles map[logType]int
+	str_ *RadixTree
+	// 活跃的文件
+	activeLogFiles map[logType]*logFile
 }
 
 // DefaultBitCaskDB 创建一个 bitCaskDB 实例
@@ -36,7 +36,6 @@ func NewBitCaskDB(options *Options) *bitCaskDB {
 
 // Run 运行实例
 func (db *bitCaskDB) Run() error {
-	fmt.Println(!util.PathExist(db.options.DBPath))
 	// 如果不存在此目录则创建
 	if !util.PathExist(db.options.DBPath) {
 		if err := os.MkdirAll(db.options.DBPath, os.ModePerm); err != nil {
@@ -51,10 +50,14 @@ func (db *bitCaskDB) CreateLogFile(logType logType) error {
 	// 如果不存在此目录则创建
 	db.mu.Lock()
 	defer db.mu.Unlock()
-
-	if db.activeLogFiles[logType] != 0 {
+	if db.activeLogFiles[logType] != nil {
 		return nil
 	}
+	file, err := NewLogFile(db.options.DBPath, logType)
+	if err != nil {
+		return err
+	}
+	db.activeLogFiles[logType] = file
 	return nil
 }
 
@@ -62,6 +65,12 @@ func (db *bitCaskDB) CreateLogFile(logType logType) error {
 func (db *bitCaskDB) AppendLog(log string, logType logType) error {
 	// 创建 logType 对应的 日志文件
 	if err := db.CreateLogFile(logType); err != nil {
+		return err
+	}
+	// 获取 logType 对应的 activeLogFile
+	activeLogFile := db.activeLogFiles[logType]
+	err := activeLogFile.AppendEntry(NewLogEntry("log", "log", uint16(logType)))
+	if err != nil {
 		return err
 	}
 	return nil

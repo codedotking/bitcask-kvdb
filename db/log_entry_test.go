@@ -1,20 +1,9 @@
 package db
 
-import (
-	"testing"
-)
-
-func TestNewLogFile(t *testing.T) {
-	_, err := NewLogFile("D:\\temp\\kvdb", strType)
-	if err != nil {
-		t.Errorf("创建日志文件失败 %s", err)
-		return
-	}
-	t.Log("日志创建成功")
-}
+import "testing"
 
 func TestLogEntryEncodeDecode(t *testing.T) {
-	logEntry := NewLogEntry([]byte("你好"), []byte("你好"), 0)
+	logEntry := NewLogEntry("你好", "你好", 0)
 	t.Logf("日志原型 %v", logEntry)
 	res, err := logEntry.Encode()
 	if err != nil {
