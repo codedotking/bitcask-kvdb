@@ -1,3 +1,4 @@
+// 文件相关工具函数
 package util
 
 import (
@@ -17,6 +18,7 @@ func CreateFile(fileName string) (file *os.File, err error) {
 	return os.OpenFile(fileName, os.O_CREATE|os.O_RDWR, 0644)
 }
 
+// CloseFile 关闭一个文件
 func CloseFile(file *os.File) {
 	_ = file.Close()
 }

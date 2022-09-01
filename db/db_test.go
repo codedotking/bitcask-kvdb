@@ -6,8 +6,8 @@ import (
 )
 
 func TestDBRun(t *testing.T) {
+	// 默认会在项目根目录下创建 kvdb 目录
 	db := DefaultBitCaskDB()
-
 	err := db.Run()
 	if err != nil {
 		t.Errorf("数据库启动失败")
@@ -42,13 +42,32 @@ func TestBitCaskDBAppendLog(t *testing.T) {
 	db := DefaultBitCaskDB()
 	err := db.Run()
 	if err != nil {
-		t.Errorf("数据库启动失败")
+		t.Errorf("数据库启动失败 %v", err)
 		return
 	}
-	err = db.AppendLog("鸟", strType)
+	lf, size, err := db.AppendLog("AAAA", "ddd", STR_TYPE, OPT_ADD)
 	if err != nil {
-		t.Errorf("写入日志失败")
+		t.Errorf("写入日志失败, %v", err)
 		return
 	}
-	t.Log("写入成功")
+	fmt.Printf("Value{offset: lf.offset, size: size}: %v\n", Value{offset: lf.offset, size: size, value: "ddd"})
+	db.strIndex.Put("AAAA", Value{offset: lf.offset, size: size})
+	value := db.strIndex.Get("AAAA")
+	fmt.Printf("value.(Value): %v\n", value.(Value))
+}
+
+func TestReadLogEntry(t *testing.T) {
+	db := DefaultBitCaskDB()
+	err := db.Run()
+	if err != nil {
+		t.Errorf("数据库启动失败 %v", err)
+		return
+	}
+	db.AppendLog("qqq", "bbbb", STR_TYPE, OPT_ADD)
+	le, err := db.RedLogEntry(STR_TYPE, 0)
+	if err != nil {
+		t.Errorf("读取日志失败 %v", err)
+		return
+	}
+	t.Logf(le.ToString())
 }

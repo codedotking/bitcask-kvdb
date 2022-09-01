@@ -1,17 +1,21 @@
 package db
 
 import (
-	"fmt"
 	"path/filepath"
+)
+
+const (
+	DB_DIR_NAME = "kvdb"
 )
 
 type Options struct {
 	DBPath string
+
+	// 日志文件最大值 默认 512 MB
+	LogFileMaxSize uint64
 }
 
 // DefaultOptions 获取默认的配置选项
 func DefaultOptions() *Options {
-	dbPath := filepath.Join("D:/temp", "kvdb")
-	fmt.Println(dbPath)
-	return &Options{DBPath: dbPath}
+	return &Options{DBPath: filepath.Join("..", "kvdb"), LogFileMaxSize: 512 << 20}
 }

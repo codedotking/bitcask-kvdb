@@ -6,13 +6,13 @@ import (
 )
 
 func TestKey(t *testing.T) {
-	node := NewNode()
+	node := NewRadixTree()
 	fmt.Println(node)
 }
 
 func TestPut(t *testing.T) {
-	node := NewNode()
-	value := Value{value: "你好", dataType: 0}
+	node := NewRadixTree()
+	value := Value{value: "你好", fid: 0}
 	node.Put("guanzhu", value)
 
 	fmt.Println(node.Get("guanzhu").(Value).value)
