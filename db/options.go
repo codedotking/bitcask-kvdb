@@ -17,5 +17,5 @@ type Options struct {
 
 // DefaultOptions 获取默认的配置选项
 func DefaultOptions() *Options {
-	return &Options{DBPath: filepath.Join("..", "kvdb"), LogFileMaxSize: 512 << 20}
+	return &Options{DBPath: filepath.Join("D:/temp", "kvdb"), LogFileMaxSize: 512 << 20}
 }

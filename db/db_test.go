@@ -63,11 +63,20 @@ func TestReadLogEntry(t *testing.T) {
 		t.Errorf("数据库启动失败 %v", err)
 		return
 	}
-	db.AppendLog("qqq", "bbbb", STR_TYPE, OPT_ADD)
+
 	le, err := db.RedLogEntry(STR_TYPE, 0)
+
 	if err != nil {
 		t.Errorf("读取日志失败 %v", err)
 		return
 	}
 	t.Logf(le.ToString())
+	offest := le.GetSize()
+	for err == nil || le != nil {
+		le, err = db.RedLogEntry(STR_TYPE, offest)
+		if le != nil {
+			t.Logf(le.ToString())
+			offest += le.GetSize()
+		}
+	}
 }

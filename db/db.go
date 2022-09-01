@@ -2,6 +2,7 @@ package db
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -72,13 +73,14 @@ func (db *bitCaskDB) loadLogFiles() error {
 				return err
 			}
 			lt := FileName2LogType[nameSplits[1]]
-			lf, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, LOG_FILE_PERM)
+			lf, err := os.OpenFile(filepath.Join(db.options.DBPath, fileName), os.O_APPEND|os.O_RDWR|os.O_CREATE, LOG_FILE_PERM)
 			if err != nil {
 				return err
 			}
 			db.activeLogFiles[lt] = &logFile{file: lf}
 		}
 	}
+
 	return nil
 }
 
