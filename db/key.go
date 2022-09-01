@@ -9,8 +9,7 @@ type Value struct {
 	fid    uint8
 	offset int64
 	// 消息大小
-	size  int64
-	value interface{}
+	entrySize int64
 }
 
 // RadixTree 基数树 所有数据存放的地方

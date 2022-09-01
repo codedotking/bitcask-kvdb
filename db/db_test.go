@@ -10,21 +10,22 @@ func TestDBRun(t *testing.T) {
 	db := DefaultBitCaskDB()
 	err := db.Run()
 	if err != nil {
-		t.Errorf("数据库启动失败")
+		t.Errorf("数据库启动失败 %v", err)
+		return
 	}
-	fmt.Println("数据库启动成功", db.options.DBPath)
+	fmt.Println("数据库启动成功", db.options.DBDirPath)
 }
 
 func TestNewBitCaskDB(t *testing.T) {
 	options := &Options{
-		DBPath: "D:/temp/kvdb",
+		DBDirPath: "D:/temp/kvdb",
 	}
 	db := NewBitCaskDB(options)
 	err := db.Run()
 	if err != nil {
 		t.Errorf("数据库启动失败")
 	}
-	fmt.Println("数据库启动成功", db.options.DBPath)
+	fmt.Println("数据库启动成功", db.options.DBDirPath)
 }
 
 func TestLoadLogFiles(t *testing.T) {
@@ -38,24 +39,6 @@ func TestLoadLogFiles(t *testing.T) {
 
 }
 
-func TestBitCaskDBAppendLog(t *testing.T) {
-	db := DefaultBitCaskDB()
-	err := db.Run()
-	if err != nil {
-		t.Errorf("数据库启动失败 %v", err)
-		return
-	}
-	lf, size, err := db.AppendLog("AAAA", "ddd", STR_TYPE, OPT_ADD)
-	if err != nil {
-		t.Errorf("写入日志失败, %v", err)
-		return
-	}
-	fmt.Printf("Value{offset: lf.offset, size: size}: %v\n", Value{offset: lf.offset, size: size, value: "ddd"})
-	db.strIndex.Put("AAAA", Value{offset: lf.offset, size: size})
-	value := db.strIndex.Get("AAAA")
-	fmt.Printf("value.(Value): %v\n", value.(Value))
-}
-
 func TestReadLogEntry(t *testing.T) {
 	db := DefaultBitCaskDB()
 	err := db.Run()
@@ -63,20 +46,18 @@ func TestReadLogEntry(t *testing.T) {
 		t.Errorf("数据库启动失败 %v", err)
 		return
 	}
-
 	le, err := db.RedLogEntry(STR_TYPE, 0)
-
 	if err != nil {
 		t.Errorf("读取日志失败 %v", err)
 		return
 	}
 	t.Logf(le.ToString())
-	offest := le.GetSize()
+	offset := le.GetSize()
 	for err == nil || le != nil {
-		le, err = db.RedLogEntry(STR_TYPE, offest)
+		le, err = db.RedLogEntry(STR_TYPE, offset)
 		if le != nil {
 			t.Logf(le.ToString())
-			offest += le.GetSize()
+			offset += le.GetSize()
 		}
 	}
 }

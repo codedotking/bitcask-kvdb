@@ -44,7 +44,7 @@ var (
 // 日志文件
 type logFile struct {
 	// 读写锁
-	mu sync.RWMutex
+	mu *sync.RWMutex
 	// 实际的日志文件
 	file *os.File
 	// 偏移量记录当前日志写到哪里
@@ -54,7 +54,6 @@ type logFile struct {
 // NewLogFile 根据目录和日志类型创建日志文件
 func NewLogFile(filePath string, logType logType) (lf *logFile, err error) {
 	fileName := filepath.Join(filePath, fmt.Sprintf("%s.%s.%s", LOG_FILE_PREFIX, LogType2FileName[logType], LOG_FILE_SUFFIX))
-	print(fileName)
 	f, err := util.CreateFile(fileName)
 	if err != nil {
 		return nil, err
@@ -75,9 +74,8 @@ func (lf *logFile) AppendEntry(le *logEntry) error {
 	if len(buf) <= 0 {
 		return nil
 	}
-	offset := atomic.LoadInt64(&lf.offset)
 	// 将日志记录写道指定位置
-	n, err := lf.file.WriteAt(buf, offset)
+	n, err := lf.file.Write(buf)
 	if err != nil {
 		return err
 	}
@@ -151,6 +149,22 @@ func (lf *logFile) ReadLogEntry(offset int64) (*logEntry, error) {
 	header.Key = buf[0:header.KeySize]
 	header.Value = buf[header.KeySize:]
 	return header, nil
+}
+
+// ReadAllLogEntryFromStart 从头开始读取所有日志记录，读取时处理日志
+func (lf *logFile) ReadAllLogEntryFromStart(process func(entry *logEntry, offset int64)) error {
+	offset := int64(0)
+	for {
+		entry, err := lf.ReadLogEntry(offset)
+		if err != nil {
+			if err.Error() == "EOF" || entry == nil {
+				return nil
+			}
+			return err
+		}
+		process(entry, offset)
+		offset += entry.GetSize()
+	}
 }
 
 // ReadLogEntry 读取长度为 n 字节数据
