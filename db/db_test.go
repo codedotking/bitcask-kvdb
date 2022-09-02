@@ -36,7 +36,8 @@ func TestLoadStringLogData(t *testing.T) {
 		t.Errorf("err: %v\n", err)
 		return
 	}
-	db.Set("he.wenyao", "is cool")
+	ok := db.Set("he.wenyao", "is cool11")
+	print(ok)
 	value, err := db.Get("he.wenyao")
 	if err != nil {
 		t.Errorf("err: %v\n", err)

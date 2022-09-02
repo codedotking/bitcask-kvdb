@@ -131,6 +131,10 @@ func (db *bitCaskDB) Get(key string) (string, error) {
 	}
 	// TODO 去实际文件根据 offset 位置读取 key 对应的 Value
 	e := db.readStringLogAt(v_.fid, v_.offset)
+	if e == nil {
+		return "", nil
+	}
+	print(e.ToString())
 	// 更新内存索引
 	return string(e.Value), nil
 }
