@@ -22,9 +22,7 @@ const (
 	// 日志文件的权限 111
 	LOG_FILE_PERM = 0644
 	// LOG_FILE_PREFIX 日志文件的前缀
-	LOG_FILE_PREFIX = "kv"
-	// LOG_FILE_SUFFIX 日志文件的后缀
-	LOG_FILE_SUFFIX = "data"
+	LOG_FILE_PREFIX = "kv.data"
 )
 
 // 定义错误信息
@@ -43,6 +41,7 @@ var (
 
 // 日志文件
 type logFile struct {
+	fid int64
 	// 读写锁
 	mu *sync.RWMutex
 	// 实际的日志文件
@@ -53,7 +52,7 @@ type logFile struct {
 
 // NewLogFile 根据目录和日志类型创建日志文件
 func NewLogFile(filePath string, logType logType) (lf *logFile, err error) {
-	fileName := filepath.Join(filePath, fmt.Sprintf("%s.%s.%s", LOG_FILE_PREFIX, LogType2FileName[logType], LOG_FILE_SUFFIX))
+	fileName := filepath.Join(filePath, fmt.Sprintf("%s.%s", LOG_FILE_PREFIX, LogType2FileName[logType]))
 	f, err := util.CreateFile(fileName)
 	if err != nil {
 		return nil, err

@@ -28,36 +28,18 @@ func TestNewBitCaskDB(t *testing.T) {
 	fmt.Println("数据库启动成功", db.options.DBDirPath)
 }
 
-func TestLoadLogFiles(t *testing.T) {
-	db := DefaultBitCaskDB()
-	err := db.loadLogFiles()
-	if err != nil {
-		t.Errorf("加载日志失败")
-		return
-	}
-	t.Logf("加载日志成功")
-
-}
-
-func TestReadLogEntry(t *testing.T) {
+// 测试加载 String 类型数据
+func TestLoadStringLogData(t *testing.T) {
 	db := DefaultBitCaskDB()
 	err := db.Run()
 	if err != nil {
-		t.Errorf("数据库启动失败 %v", err)
+		t.Errorf("err: %v\n", err)
 		return
 	}
-	le, err := db.RedLogEntry(STR_TYPE, 0)
+	db.Set("he.wenyao", "is cool")
+	value, err := db.Get("he.wenyao")
 	if err != nil {
-		t.Errorf("读取日志失败 %v", err)
-		return
+		t.Errorf("err: %v\n", err)
 	}
-	t.Logf(le.ToString())
-	offset := le.GetSize()
-	for err == nil || le != nil {
-		le, err = db.RedLogEntry(STR_TYPE, offset)
-		if le != nil {
-			t.Logf(le.ToString())
-			offset += le.GetSize()
-		}
-	}
+	fmt.Printf("value: %v\n", value)
 }

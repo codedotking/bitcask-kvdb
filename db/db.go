@@ -1,10 +1,8 @@
 package db
 
 import (
+	"io/fs"
 	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/he-wen-yao/bitcask-kvdb/util"
@@ -20,6 +18,8 @@ type (
 		strIndex *strIndex
 		// 活跃的文件
 		activeLogFiles map[logType]*logFile
+		// 日志类型对应文件ID
+		logTypeFIds map[logType][]int
 	}
 )
 
@@ -46,100 +46,16 @@ func NewBitCaskDB(options *Options) *bitCaskDB {
 }
 
 // Run 运行实例
-func (db *bitCaskDB) Run() error {
+func (db *bitCaskDB) Run() (err error) {
+	dbLog.Printf("bitCaskDB start run .....")
 	// 如果不存在此目录则创建
-	if !util.PathExist(db.options.DBDirPath) {
-		if err := os.MkdirAll(db.options.DBDirPath, os.ModePerm); err != nil {
-			return err
-		}
-	}
-
-	err := db.loadOlderLogData()
+	err = db.CreateDirIfExist(db.options.DBDirPath)
 	if err != nil {
-		return err
+		return
 	}
-
-	// 初始化日志文件
-	err = db.loadLogFiles()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// loadLogFiles 加载 bitCaskDB 所需要的日志文件
-func (db *bitCaskDB) loadLogFiles() error {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-	// 读取存放日志的目录
-	files, err := os.ReadDir(db.options.DBDirPath)
-	if err != nil {
-		return err
-	}
-	for _, file := range files {
-		fileName := file.Name()
-		// 加载活跃日志
-		if strings.HasPrefix(fileName, LOG_FILE_PREFIX) && strings.HasSuffix(fileName, LOG_FILE_SUFFIX) {
-			nameSplits := strings.Split(fileName, ".")
-			if err != nil {
-				return err
-			}
-			lt := FileName2LogType[nameSplits[1]]
-			lf, err := os.OpenFile(filepath.Join(db.options.DBDirPath, fileName), os.O_APPEND|os.O_RDWR|os.O_CREATE, LOG_FILE_PERM)
-			if err != nil {
-				return err
-			}
-			db.activeLogFiles[lt] = &logFile{file: lf}
-		}
-	}
-	return nil
-}
-
-// 加载 String 类型的数据
-func (db *bitCaskDB) loadOlderLogData() error {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-	// 读取存放日志的目录
-	olderFiles, err := os.ReadDir(filepath.Join(db.options.DBDirPath, "older"))
-	if err != nil {
-		return err
-	}
-	if len(olderFiles) == 0 {
-		return nil
-	}
-	for _, file := range olderFiles {
-		fileName := file.Name()
-		if strings.HasPrefix(fileName, LOG_FILE_PREFIX) {
-			nameSplits := strings.Split(fileName, ".")
-			lt := FileName2LogType[nameSplits[1]]
-			n, _ := strconv.Atoi(nameSplits[3])
-			db.olderFidNum[lt] = uint8(n)
-			if lt == STR_TYPE {
-				lf, err := os.OpenFile(filepath.Join(db.options.DBDirPath, "older", fileName), os.O_APPEND|os.O_RDWR|os.O_CREATE, LOG_FILE_PERM)
-				if err != nil {
-					return err
-				}
-				logF := &logFile{file: lf, offset: 0, mu: new(sync.RWMutex)}
-				dst := db.strIndex.tree
-
-				lee, _ := logF.ReadLogEntry(0)
-				print(lee)
-				// 加载所有日志记录
-				err = logF.ReadAllLogEntryFromStart(func(entry *logEntry, offset int64) {
-					if entry.OptType == OPT_ADD {
-						dst.Put(string(entry.Key), Value{fid: uint8(n), offset: offset})
-					} else if entry.OptType == OPT_DEL {
-						dst.Delete(string(entry.Key))
-					}
-				})
-				if err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
+	db.logTypeFIds = map[logType][]int{}
+	err = db.loadStringLogData()
+	return
 }
 
 // CreateLogFile 创建日志文件
@@ -181,4 +97,27 @@ func (db *bitCaskDB) RedLogEntry(lt logType, offset int64) (*logEntry, error) {
 		return nil, err
 	}
 	return le, nil
+}
+
+// CreateDirIfExist  如果目录不存在则创建，存在则忽略
+func (db *bitCaskDB) CreateDirIfExist(dirPath string) (err error) {
+	if !util.PathExist(dirPath) {
+		if err = os.MkdirAll(dirPath, os.ModePerm); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ReaderDir 读取目录中的内容
+func (db *bitCaskDB) ReadDir(dirPath string) (files []fs.DirEntry, err error) {
+	err = db.CreateDirIfExist(dirPath)
+	if err != err {
+		return nil, err
+	}
+	files, err = os.ReadDir(dirPath)
+	if err != nil {
+		return nil, err
+	}
+	return
 }

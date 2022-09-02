@@ -6,7 +6,7 @@ import (
 
 // Value 基数树 key 对应的 value
 type Value struct {
-	fid    uint8
+	fid    int64
 	offset int64
 	// 消息大小
 	entrySize int64
