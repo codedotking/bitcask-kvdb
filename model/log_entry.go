@@ -8,7 +8,7 @@ import (
 
 type (
 	// Entry 写入日志文件的操作记录实体
-	Entry struct {
+	LogEntry struct {
 		Key   []byte
 		Value []byte
 		crc   uint32
@@ -33,11 +33,11 @@ type (
 	}
 )
 
-func (e *Entry) Size() uint64 {
+func (e *LogEntry) Size() uint64 {
 	return uint64(constant.ENTRY_HEADER_SIZE + e.Meta.ValueSize + e.Meta.KeySize)
 }
 
-func (e *Entry) Encode() []byte {
+func (e *LogEntry) Encode() []byte {
 	keySize := e.Meta.KeySize
 	valueSize := e.Meta.ValueSize
 	// 初始化细节切片
@@ -53,7 +53,7 @@ func (e *Entry) Encode() []byte {
 	return buf
 }
 
-func (e *Entry) setEntryHeaderBuf(buf []byte) []byte {
+func (e *LogEntry) setEntryHeaderBuf(buf []byte) []byte {
 	binary.LittleEndian.PutUint64(buf[4:12], e.Meta.Timestamp)
 	binary.LittleEndian.PutUint32(buf[12:16], e.Meta.KeySize)
 	binary.LittleEndian.PutUint32(buf[16:20], e.Meta.ValueSize)
@@ -64,7 +64,7 @@ func (e *Entry) setEntryHeaderBuf(buf []byte) []byte {
 }
 
 // GetCrc 重新计算 Entry 的 crc 的校验值
-func (e *Entry) GetCrc(buf []byte) uint32 {
+func (e *LogEntry) GetCrc(buf []byte) uint32 {
 	crc := crc32.ChecksumIEEE(buf[4:])
 	crc = crc32.Update(crc, crc32.IEEETable, e.Key)
 	crc = crc32.Update(crc, crc32.IEEETable, e.Value)
